@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 
-public class ContinuousImageServer {
+public class ImageServer {
     private static final int PORT = 5555;
 
     public static void main(String[] args) {
@@ -37,8 +37,9 @@ public class ContinuousImageServer {
                 try (FileOutputStream fos = new FileOutputStream(fileName)) {
                     byte[] buffer = new byte[4096];
                     int bytesRead;
-                    while ((bytesRead = dis.read(buffer)) != -1) {
+                    while (fileSize > 0 && (bytesRead = dis.read(buffer, 0, (int) Math.min(buffer.length, fileSize))) != -1) {
                         fos.write(buffer, 0, bytesRead);
+                        fileSize -= bytesRead;
                     }
 
                     System.out.println("File received successfully.");
