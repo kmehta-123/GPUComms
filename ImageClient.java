@@ -1,46 +1,50 @@
-import java.io.DataOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
+import java.io.DataInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.ArrayDeque;
-import java.util.Queue;
 
-public class ImageClient {
-    private static final String SERVER_ADDRESS = "128.195.55.250";
-    private static final int SERVER_PORT = 5555;
+public class ImageServer {
+    private static final int PORT = 5555;
 
     public static void main(String[] args) {
-        ArrayDeque<String> imageQueue = new ArrayDeque<>();
-        imageQueue.add("test_images/test.jpg");
-        imageQueue.add("test_images/test2.jpg");
-        imageQueue.add("test_images/test3.jpg");
+        try (ServerSocket serverSocket = new ServerSocket(PORT)) {
+            System.out.println("Server listening on port " + PORT);
 
-        try (Socket socket = new Socket(SERVER_ADDRESS, SERVER_PORT)) {
-            DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
+            while (true) {
+                Socket socket = serverSocket.accept();
+                System.out.println("Client connected: " + socket.getInetAddress());
 
-            while (!imageQueue.isEmpty()) {
-                String imagePath = imageQueue.poll();
-                sendImage(dos, imagePath);
+                handleClient(socket);
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    private static void sendImage(DataOutputStream dos, String imagePath) {
-        try (FileInputStream fis = new FileInputStream(imagePath)) {
-            dos.writeUTF(new File(imagePath).getName());
-            dos.writeLong(new File(imagePath).length());
+    private static void handleClient(Socket socket) {
+        try (DataInputStream dis = new DataInputStream(socket.getInputStream())) {
+            while (true) {
+                String fileName = dis.readUTF();
+                if (fileName.equals("END_OF_TRANSMISSION")) {
+                    System.out.println("Client disconnected: " + socket.getInetAddress());
+                    break;
+                }
 
-            byte[] buffer = new byte[4096];
-            int bytesRead;
-            while ((bytesRead = fis.read(buffer)) != -1) {
-                dos.write(buffer, 0, bytesRead);
+                long fileSize = dis.readLong();
+                System.out.println("Receiving file: " + fileName + " (" + fileSize + " bytes)");
+
+                try (FileOutputStream fos = new FileOutputStream(fileName)) {
+                    byte[] buffer = new byte[4096];
+                    int bytesRead;
+                    while (fileSize > 0 && (bytesRead = dis.read(buffer, 0, (int) Math.min(buffer.length, fileSize))) != -1) {
+                        fos.write(buffer, 0, bytesRead);
+                        fileSize -= bytesRead;
+                    }
+
+                    System.out.println("File received successfully.");
+                }
             }
-
-            System.out.println("File sent successfully: " + imagePath);
-            
         } catch (IOException e) {
             e.printStackTrace();
         }
