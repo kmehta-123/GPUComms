@@ -7,7 +7,7 @@ import java.util.ArrayDeque;
 import java.util.Queue;
 
 public class ImageClient {
-    private static final String SERVER_ADDRESS = "localhost";
+    private static final String SERVER_ADDRESS = "128.195.55.250";
     private static final int SERVER_PORT = 5555;
 
     public static void main(String[] args) {
@@ -40,6 +40,7 @@ public class ImageClient {
             }
 
             System.out.println("File sent successfully: " + imagePath);
+            
         } catch (IOException e) {
             e.printStackTrace();
         }

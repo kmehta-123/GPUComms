@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 
-public class ImageServer {
+public class ContinuousImageServer {
     private static final int PORT = 5555;
 
     public static void main(String[] args) {
@@ -24,19 +24,25 @@ public class ImageServer {
 
     private static void handleClient(Socket socket) {
         try (DataInputStream dis = new DataInputStream(socket.getInputStream())) {
-            String fileName = dis.readUTF();
-            long fileSize = dis.readLong();
-
-            System.out.println("Receiving file: " + fileName + " (" + fileSize + " bytes)");
-
-            try (FileOutputStream fos = new FileOutputStream(fileName)) {
-                byte[] buffer = new byte[4096];
-                int bytesRead;
-                while ((bytesRead = dis.read(buffer)) != -1) {
-                    fos.write(buffer, 0, bytesRead);
+            while (true) {
+                String fileName = dis.readUTF();
+                if (fileName.equals("END_OF_TRANSMISSION")) {
+                    System.out.println("Client disconnected: " + socket.getInetAddress());
+                    break;
                 }
 
-                System.out.println("File received successfully.");
+                long fileSize = dis.readLong();
+                System.out.println("Receiving file: " + fileName + " (" + fileSize + " bytes)");
+
+                try (FileOutputStream fos = new FileOutputStream(fileName)) {
+                    byte[] buffer = new byte[4096];
+                    int bytesRead;
+                    while ((bytesRead = dis.read(buffer)) != -1) {
+                        fos.write(buffer, 0, bytesRead);
+                    }
+
+                    System.out.println("File received successfully.");
+                }
             }
         } catch (IOException e) {
             e.printStackTrace();
